@@ -1,6 +1,3 @@
-import asyncio
-import xml.etree.ElementTree as ET
-
 import requests
 from bs4 import BeautifulSoup
 
@@ -13,31 +10,30 @@ class Resourse():
     self.article_selectors = data['article_selectors'] if data.get('article_selectors') else {}
     self.news_data = []
 
-  async def loadRSS(self):
+  def loadRSS(self):
     response = requests.get(self.url)
 
     self.xml_data = response.content
 
-    await self.parseXML()
+    self.parseXML()
 
-  async def parseXML(self):
-    root = ET.fromstring(self.xml_data)
+  def parseXML(self):
+    soup = BeautifulSoup(self.xml_data, "xml")
 
-    for child in root:
-      for item in child.findall('item'):
-        link = item.find('link').text
-        title = item.find('title').text
-        desc = item.find('description').text
-        published = item.find('pubDate').text
+    for item in soup.find_all('item'):
+      link = item.find('link').get_text()
+      title = item.find('title').get_text()
+      desc = item.find('description').get_text()
+      published = item.find('pubDate').get_text()
 
-        data = {
-          'link': link,
-          'title': title,
-          'desc': desc,
-          'published': published
-        }
+      data = {
+        'link': link,
+        'title': title,
+        'desc': desc,
+        'published': published
+      }
 
-        self.news_data.append(data)
+      self.news_data.append(data)
 
   def news(self, *args, **kwargs):
     if kwargs.get('limit'):
@@ -126,7 +122,7 @@ class Graber():
 
   def __init__(self, *args, **kwargs):
     self.initResourses(*args, **kwargs)
-    asyncio.run(self.loadResourseData())
+    self.loadResourseData()
 
   def initResourses(self, *args, **kwargs):
     if kwargs.get('additional_data') and isinstance(kwargs['additional_data'], list):
@@ -141,10 +137,9 @@ class Graber():
       )
       self.resourses_list.append(resourse)
 
-  async def loadResourseData(self):
-    await asyncio.gather(
-      *[resourse.loadRSS() for resourse in self.resourses_list]
-    )
+  def loadResourseData(self):
+    for resourse in self.resourses_list:
+      resourse.loadRSS()
 
 
 graber= Graber()
